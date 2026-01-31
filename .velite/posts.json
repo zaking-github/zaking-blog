@@ -1,0 +1,70 @@
+[
+  {
+    "slug": "posts/hello-world",
+    "title": "构建高性能 Next.js 博客：架构篇",
+    "description": "探索 Next.js App Router、Tailwind CSS v4 与 Server Components 的极致性能实践。",
+    "date": "2024-03-20T00:00:00.000Z",
+    "published": true,
+    "category": "Engineering",
+    "tags": [
+      "Next.js",
+      "React",
+      "Performance"
+    ],
+    "body": "const{Fragment:e,jsx:n,jsxs:l}=arguments[0];function _createMdxContent(r){const t={a:\"a\",blockquote:\"blockquote\",code:\"code\",figcaption:\"figcaption\",figure:\"figure\",h1:\"h1\",h2:\"h2\",input:\"input\",li:\"li\",p:\"p\",pre:\"pre\",span:\"span\",strong:\"strong\",ul:\"ul\",...r.components};return l(e,{children:[n(t.h1,{id:\"引言\",children:n(t.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#引言\",children:\"引言\"})}),\"\\n\",l(t.p,{children:[\"在 2024 年构建一个技术博客，我们不仅追求内容的呈现，更追求极致的\",n(t.strong,{children:\"加载速度\"}),\"与\",n(t.strong,{children:\"开发体验\"}),\"。\"]}),\"\\n\",n(t.h2,{id:\"为什么选择-server-components\",children:n(t.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#为什么选择-server-components\",children:\"为什么选择 Server Components?\"})}),\"\\n\",n(t.p,{children:\"RSC (React Server Components) 允许我们在服务端直接渲染 Markdown，向客户端发送零 JavaScript 的 HTML。\"}),\"\\n\",l(t.figure,{\"data-rehype-pretty-code-figure\":\"\",children:[n(t.figcaption,{\"data-rehype-pretty-code-title\":\"\",\"data-language\":\"tsx\",\"data-theme\":\"github-dark\",children:\"src/components/post.tsx\"}),n(t.pre,{style:{backgroundColor:\"#24292e\",color:\"#e1e4e8\"},tabIndex:\"0\",\"data-language\":\"tsx\",\"data-theme\":\"github-dark\",children:l(t.code,{\"data-language\":\"tsx\",\"data-theme\":\"github-dark\",style:{display:\"grid\"},children:[l(t.span,{\"data-line\":\"\",children:[n(t.span,{style:{color:\"#F97583\"},children:\"async\"}),n(t.span,{style:{color:\"#F97583\"},children:\" function\"}),n(t.span,{style:{color:\"#B392F0\"},children:\" Post\"}),n(t.span,{style:{color:\"#E1E4E8\"},children:\"({ \"}),n(t.span,{style:{color:\"#FFAB70\"},children:\"slug\"}),n(t.span,{style:{color:\"#E1E4E8\"},children:\" }\"}),n(t.span,{style:{color:\"#F97583\"},children:\":\"}),n(t.span,{style:{color:\"#E1E4E8\"},children:\" { \"}),n(t.span,{style:{color:\"#FFAB70\"},children:\"slug\"}),n(t.span,{style:{color:\"#F97583\"},children:\":\"}),n(t.span,{style:{color:\"#79B8FF\"},children:\" string\"}),n(t.span,{style:{color:\"#E1E4E8\"},children:\" }) {\"})]}),\"\\n\",l(t.span,{\"data-line\":\"\",children:[n(t.span,{style:{color:\"#F97583\"},children:\"  const\"}),n(t.span,{style:{color:\"#79B8FF\"},children:\" content\"}),n(t.span,{style:{color:\"#F97583\"},children:\" =\"}),n(t.span,{style:{color:\"#F97583\"},children:\" await\"}),n(t.span,{style:{color:\"#B392F0\"},children:\" loadPost\"}),n(t.span,{style:{color:\"#E1E4E8\"},children:\"(slug);\"})]}),\"\\n\",l(t.span,{\"data-line\":\"\",children:[n(t.span,{style:{color:\"#F97583\"},children:\"  return\"}),n(t.span,{style:{color:\"#E1E4E8\"},children:\" <\"}),n(t.span,{style:{color:\"#85E89D\"},children:\"article\"}),n(t.span,{style:{color:\"#E1E4E8\"},children:\">{content}</\"}),n(t.span,{style:{color:\"#85E89D\"},children:\"article\"}),n(t.span,{style:{color:\"#E1E4E8\"},children:\">;\"})]}),\"\\n\",n(t.span,{\"data-line\":\"\",children:n(t.span,{style:{color:\"#E1E4E8\"},children:\"}\"})})]})})]}),\"\\n\",n(t.h2,{id:\"性能优化清单\",children:n(t.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#性能优化清单\",children:\"性能优化清单\"})}),\"\\n\",l(t.ul,{className:\"contains-task-list\",children:[\"\\n\",l(t.li,{className:\"task-list-item\",children:[n(t.input,{type:\"checkbox\",disabled:!0}),\" \",\"静态生成 (SSG)\"]}),\"\\n\",l(t.li,{className:\"task-list-item\",children:[n(t.input,{type:\"checkbox\",disabled:!0}),\" \",\"图片自动优化\"]}),\"\\n\",l(t.li,{className:\"task-list-item\",children:[n(t.input,{type:\"checkbox\",disabled:!0}),\" \",\"字体自托管\"]}),\"\\n\"]}),\"\\n\",l(t.blockquote,{children:[\"\\n\",n(t.p,{children:\"真正的性能优化，始于架构设计。\"}),\"\\n\"]})]})}return{default:function(e={}){const{wrapper:l}=e.components||{};return l?n(l,{...e,children:n(_createMdxContent,{...e})}):_createMdxContent(e)}};",
+    "toc": [
+      {
+        "title": "引言",
+        "url": "#引言",
+        "items": [
+          {
+            "title": "为什么选择 Server Components?",
+            "url": "#为什么选择-server-components",
+            "items": []
+          },
+          {
+            "title": "性能优化清单",
+            "url": "#性能优化清单",
+            "items": []
+          }
+        ]
+      }
+    ],
+    "slugAsParams": "hello-world",
+    "permalink": "/posts/hello-world"
+  },
+  {
+    "slug": "posts/visualization-demo",
+    "title": "在 MDX 中集成交互式图表",
+    "description": "演示如何将 React 组件（Recharts）直接嵌入到 Markdown 内容中。",
+    "date": "2024-03-21T00:00:00.000Z",
+    "published": true,
+    "category": "Visualization",
+    "tags": [
+      "Recharts",
+      "MDX",
+      "DataViz"
+    ],
+    "body": "const{Fragment:e,jsx:n,jsxs:r}=arguments[0];function _createMdxContent(a){const t={a:\"a\",code:\"code\",figure:\"figure\",h1:\"h1\",h2:\"h2\",p:\"p\",pre:\"pre\",span:\"span\",...a.components},{VisitsChart:c}=t;return c||function(e,n){throw new Error(\"Expected \"+(n?\"component\":\"object\")+\" `\"+e+\"` to be defined: you likely forgot to import, pass, or provide it.\")}(\"VisitsChart\",!0),r(e,{children:[n(t.h1,{id:\"数据可视化-demo\",children:n(t.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#数据可视化-demo\",children:\"数据可视化 Demo\"})}),\"\\n\",n(t.p,{children:\"在技术博客中，静态图片往往不足以表达复杂的数据关系。通过 Velite 和 MDX，我们可以轻松嵌入交互式 React 组件。\"}),\"\\n\",n(t.h2,{id:\"访问量趋势图\",children:n(t.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#访问量趋势图\",children:\"访问量趋势图\"})}),\"\\n\",r(t.p,{children:[\"下面的图表是一个真实的 React 组件 (\",n(t.code,{children:\"VisitsChart\"}),\")，它运行在客户端，支持交互和深色模式响应。\"]}),\"\\n\",n(c,{}),\"\\n\",n(t.h2,{id:\"实现原理\",children:n(t.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#实现原理\",children:\"实现原理\"})}),\"\\n\",r(t.p,{children:[\"我们在 \",n(t.code,{children:\"mdx-content.tsx\"}),\" 中注册了该组件：\"]}),\"\\n\",n(t.figure,{\"data-rehype-pretty-code-figure\":\"\",children:n(t.pre,{style:{backgroundColor:\"#24292e\",color:\"#e1e4e8\"},tabIndex:\"0\",\"data-language\":\"tsx\",\"data-theme\":\"github-dark\",children:r(t.code,{\"data-language\":\"tsx\",\"data-theme\":\"github-dark\",style:{display:\"grid\"},children:[r(t.span,{\"data-line\":\"\",children:[n(t.span,{style:{color:\"#F97583\"},children:\"const\"}),n(t.span,{style:{color:\"#79B8FF\"},children:\" components\"}),n(t.span,{style:{color:\"#F97583\"},children:\" =\"}),n(t.span,{style:{color:\"#E1E4E8\"},children:\" {\"})]}),\"\\n\",n(t.span,{\"data-line\":\"\",children:n(t.span,{style:{color:\"#E1E4E8\"},children:\"  Image,\"})}),\"\\n\",r(t.span,{\"data-line\":\"\",children:[n(t.span,{style:{color:\"#E1E4E8\"},children:\"  VisitsChart, \"}),n(t.span,{style:{color:\"#6A737D\"},children:\"// <-- 注入组件\"})]}),\"\\n\",n(t.span,{\"data-line\":\"\",children:n(t.span,{style:{color:\"#E1E4E8\"},children:\"}\"})})]})})}),\"\\n\",r(t.p,{children:[\"这样，Markdown 编译器就会将 \",n(t.code,{children:\"<VisitsChart />\"}),\" 标签替换为实际的 React 组件实例。\"]})]})}return{default:function(e={}){const{wrapper:r}=e.components||{};return r?n(r,{...e,children:n(_createMdxContent,{...e})}):_createMdxContent(e)}};",
+    "toc": [
+      {
+        "title": "数据可视化 Demo",
+        "url": "#数据可视化-demo",
+        "items": [
+          {
+            "title": "访问量趋势图",
+            "url": "#访问量趋势图",
+            "items": []
+          },
+          {
+            "title": "实现原理",
+            "url": "#实现原理",
+            "items": []
+          }
+        ]
+      }
+    ],
+    "slugAsParams": "visualization-demo",
+    "permalink": "/posts/visualization-demo"
+  }
+]

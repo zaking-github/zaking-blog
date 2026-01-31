@@ -1,0 +1,32 @@
+---
+title: "构建高性能 Next.js 博客：架构篇"
+date: "2024-03-20"
+description: "探索 Next.js App Router、Tailwind CSS v4 与 Server Components 的极致性能实践。"
+published: true
+category: "Engineering"
+tags: ["Next.js", "React", "Performance"]
+---
+
+# 引言
+
+在 2024 年构建一个技术博客，我们不仅追求内容的呈现，更追求极致的**加载速度**与**开发体验**。
+
+## 为什么选择 Server Components?
+
+RSC (React Server Components) 允许我们在服务端直接渲染 Markdown，向客户端发送零 JavaScript 的 HTML。
+
+```tsx title="src/components/post.tsx"
+async function Post({ slug }: { slug: string }) {
+  const content = await loadPost(slug);
+  return <article>{content}</article>;
+}
+```
+
+## 性能优化清单
+
+- [ ] 静态生成 (SSG)
+- [ ] 图片自动优化
+- [ ] 字体自托管
+
+> 真正的性能优化，始于架构设计。
+

@@ -1,0 +1,31 @@
+---
+title: "在 MDX 中集成交互式图表"
+date: "2024-03-21"
+description: "演示如何将 React 组件（Recharts）直接嵌入到 Markdown 内容中。"
+published: true
+category: "Visualization"
+tags: ["Recharts", "MDX", "DataViz"]
+---
+
+# 数据可视化 Demo
+
+在技术博客中，静态图片往往不足以表达复杂的数据关系。通过 Velite 和 MDX，我们可以轻松嵌入交互式 React 组件。
+
+## 访问量趋势图
+
+下面的图表是一个真实的 React 组件 (`VisitsChart`)，它运行在客户端，支持交互和深色模式响应。
+
+<VisitsChart />
+
+## 实现原理
+
+我们在 `mdx-content.tsx` 中注册了该组件：
+
+```tsx
+const components = {
+  Image,
+  VisitsChart, // <-- 注入组件
+}
+```
+
+这样，Markdown 编译器就会将 `<VisitsChart />` 标签替换为实际的 React 组件实例。

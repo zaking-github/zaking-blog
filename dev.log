@@ -1,0 +1,54 @@
+
+> zaking-blog@0.1.0 dev
+> velite --watch & next dev
+
+[32m[VELITE][0m build finished in 943.70ms
+[32m[VELITE][0m watching for changes in 'src/content' 
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.24.66.204:3000
+
+✓ Starting...
+✓ Ready in 1032ms
+[?25h
+
+  #  Node.js[71825]: void node::ResetStdio() at ../src/node.cc:751
+  #  Assertion failed: !(err != 0) || (err == -1 && (*__errno_location ()) == 1)
+
+----- Native stack trace -----
+
+ 1: 0xcb3007 node::Assert(node::AssertionInfo const&) [node]
+ 2: 0xc5f924  [node]
+ 3: 0x785621c47a76  [/lib/x86_64-linux-gnu/libc.so.6]
+ 4: 0x785621c47bbe  [/lib/x86_64-linux-gnu/libc.so.6]
+ 5: 0xbbf62f node::DefaultProcessExitHandlerInternal(node::Environment*, node::ExitCode) [node]
+ 6: 0xc1ef0f node::Environment::Exit(node::ExitCode) [node]
+ 7: 0xf4e54f v8::internal::FunctionCallbackArguments::Call(v8::internal::CallHandlerInfo) [node]
+ 8: 0xf4edbd  [node]
+ 9: 0xf4f285 v8::internal::Builtin_HandleApiCall(int, unsigned long*, v8::internal::Isolate*) [node]
+10: 0x1959df6  [node]
+
+  #  Node.js[71825]: void node::ResetStdio() at ../src/node.cc:751
+  #  Assertion failed: !(err != 0) || (err == -1 && (*__errno_location ()) == 1)
+
+----- Native stack trace -----
+
+ 1: 0xcb3007 node::Assert(node::AssertionInfo const&) [node]
+ 2: 0xc5f924  [node]
+ 3: 0xc5ff3d node::TrapWebAssemblyOrContinue(int, siginfo_t*, void*) [node]
+ 4: 0x785621c45330  [/lib/x86_64-linux-gnu/libc.so.6]
+ 5: 0x1589970 v8::internal::tracing::TraceEventHelper::GetTracingController() [node]
+ 6: 0x1060555 v8::internal::Isolate::CaptureDetailedStackTrace(int, v8::StackTrace::StackTraceOptions) [node]
+ 7: 0xeeee70 v8::StackTrace::CurrentStackTrace(v8::Isolate*, int, v8::StackTrace::StackTraceOptions) [node]
+ 8: 0xcb2f66 node::GetCurrentStackTrace(v8::Isolate*, int) [node]
+ 9: 0xbffbbb node::DumpJavaScriptBacktrace(_IO_FILE*) [node]
+10: 0xcb3013 node::Assert(node::AssertionInfo const&) [node]
+11: 0xc5f924  [node]
+12: 0x785621c47a76  [/lib/x86_64-linux-gnu/libc.so.6]
+13: 0x785621c47bbe  [/lib/x86_64-linux-gnu/libc.so.6]
+14: 0xbbf62f node::DefaultProcessExitHandlerInternal(node::Environment*, node::ExitCode) [node]
+15: 0xc1ef0f node::Environment::Exit(node::ExitCode) [node]
+16: 0xf4e54f v8::internal::FunctionCallbackArguments::Call(v8::internal::CallHandlerInfo) [node]
+17: 0xf4edbd  [node]
+18: 0xf4f285 v8::internal::Builtin_HandleApiCall(int, unsigned long*, v8::internal::Isolate*) [node]
+19: 0x1959df6  [node]
