@@ -1,0 +1,89 @@
+---
+title: Vue 3 源码解读：核心架构与实现原理
+description: 深入剖析 Vue 3 的 Monorepo 架构、响应式系统（Proxy）、运行时（Renderer & Diff）以及编译器优化策略。
+date: 2026-01-31
+published: true
+category: Engineering
+tags: ["Vue", "Source Code", "Architecture"]
+---
+
+作为一名高级前端架构师，深入理解 Vue 3 的源码不仅有助于写出更高效的代码，更能提升架构设计能力。本文将带你从宏观架构到微观实现，系统性地梳理 Vue 3 的核心源码。
+
+## 1. 宏观架构：Monorepo 与 模块化
+
+Vue 3 采用了 Monorepo 结构进行管理（通过 pnpm workspace），将核心功能拆分为独立的包，位于 `packages/` 目录下。
+
+### 核心模块一览
+
+| 模块名 | 作用 | 依赖关系 |
+| :--- | :--- | :--- |
+| **reactivity** | 独立的响应式系统（Proxy, Ref, Effect） | 无（可独立使用） |
+| **runtime-core** | 平台无关的运行时核心（VNode, Component, Diff, Scheduler） | 依赖 reactivity |
+| **runtime-dom** | 针对浏览器的运行时实现（DOM 操作 API, 事件处理） | 依赖 runtime-core |
+| **compiler-core** | 平台无关的编译器核心（Parse, Transform, Codegen） | 无 |
+| **compiler-dom** | 针对浏览器的编译器扩展（处理 v-model, v-html 等） | 依赖 compiler-core |
+| **vue** | 入口包，整合 Runtime + Compiler | 依赖上述所有 |
+
+## 2. 响应式系统 (Reactivity)
+
+Vue 3 抛弃了 Vue 2 的 `Object.defineProperty`，全面拥抱 `Proxy`。
+
+### 2.1 核心流程
+1.  **Reactive**: 使用 `new Proxy(target, handler)` 拦截对象读写。
+2.  **Track (依赖收集)**: 在 `get` 拦截中，收集当前活跃的副作用函数 (`activeEffect`)。
+3.  **Trigger (派发更新)**: 在 `set` 拦截中，从依赖地图 (`targetMap`) 中取出对应的副作用函数并执行。
+
+### 2.2 关键代码路径
+- `packages/reactivity/src/reactive.ts`: Proxy 的创建。
+- `packages/reactivity/src/baseHandlers.ts`: `get` (track) 和 `set` (trigger) 的实现。
+- `packages/reactivity/src/effect.ts`: 响应式系统的核心驱动力。
+
+> **架构思考**: Reactivity 模块完全解耦，你可以直接在 Node.js 或 React 项目中单独使用 `@vue/reactivity`。
+
+## 3. 运行时核心 (Runtime Core)
+
+这是 Vue 3 的“心脏”，负责组件的渲染、更新和生命周期管理。
+
+### 3.1 渲染器 (Renderer)
+Vue 3 提供了 `createRenderer` API，允许你构建自定义渲染器（如 Canvas, WebGL, 小程序）。
+
+```typescript
+// 伪代码示例
+const { render } = createRenderer({
+  createElement(type) { /* ... */ },
+  patchProp(el, key, val) { /* ... */ },
+  insert(el, parent) { /* ... */ }
+})
+```
+
+### 3.2 Diff 算法 (快速 Diff)
+Vue 3 的 Diff 算法主要处理 `patchKeyedChildren`。
+1.  **前置/后置预处理**: 先处理头部和尾部相同的节点。
+2.  **最长递增子序列 (LIS)**: 针对中间乱序部分，计算 LIS 以最小化 DOM 移动操作。
+
+### 3.3 调度器 (Scheduler)
+Vue 的更新是异步的。`queueJob` 和 `nextTick` 保证了多次数据变更只触发一次组件更新。
+- 源码位置: `packages/runtime-core/src/scheduler.ts`
+
+## 4. 编译器 (Compiler)
+
+Vue 3 编译器的最大亮点是**编译时优化**，它为运行时提供了足够的信息（Hints）来加速更新。
+
+### 4.1 编译流程
+1.  **Parse**: Template -> AST。
+2.  **Transform**: AST -> AST (处理指令、优化)。
+3.  **Codegen**: AST -> Render Function String。
+
+### 4.2 核心优化策略
+*   **Patch Flags**: 在动态节点上打标记（如 TEXT, CLASS, PROPS），Diff 时只比对变化部分，跳过静态节点。
+*   **Static Hoisting (静态提升)**: 将静态节点提升到渲染函数之外，只创建一次。
+*   **Block Tree**: 将模版看作一个 Block，收集所有动态子节点，将树的遍历打平为数组遍历。
+
+## 5. 总结与建议
+
+阅读源码建议从 `packages/vue/src/index.ts` 入口开始，顺藤摸瓜：
+1.  先看 **Reactivity**，它是独立的，最容易上手。
+2.  再看 **Runtime-Core** 中的 `mount` 和 `patch` 流程。
+3.  最后研究 **Compiler** 是如何生成带有 PatchFlags 的代码的。
+
+Happy Coding!

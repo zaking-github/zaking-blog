@@ -66,5 +66,92 @@
     ],
     "slugAsParams": "visualization-demo",
     "permalink": "/posts/visualization-demo"
+  },
+  {
+    "slug": "posts/vue3-source-code-guide",
+    "title": "Vue 3 源码解读：核心架构与实现原理",
+    "description": "深入剖析 Vue 3 的 Monorepo 架构、响应式系统（Proxy）、运行时（Renderer & Diff）以及编译器优化策略。",
+    "date": "2026-01-31T00:00:00.000Z",
+    "published": true,
+    "category": "Engineering",
+    "tags": [
+      "Vue",
+      "Source Code",
+      "Architecture"
+    ],
+    "body": "const{Fragment:e,jsx:n,jsxs:l}=arguments[0];function _createMdxContent(r){const i={a:\"a\",blockquote:\"blockquote\",code:\"code\",figure:\"figure\",h2:\"h2\",h3:\"h3\",li:\"li\",ol:\"ol\",p:\"p\",pre:\"pre\",span:\"span\",strong:\"strong\",table:\"table\",tbody:\"tbody\",td:\"td\",th:\"th\",thead:\"thead\",tr:\"tr\",ul:\"ul\",...r.components};return l(e,{children:[n(i.p,{children:\"作为一名高级前端架构师，深入理解 Vue 3 的源码不仅有助于写出更高效的代码，更能提升架构设计能力。本文将带你从宏观架构到微观实现，系统性地梳理 Vue 3 的核心源码。\"}),\"\\n\",n(i.h2,{id:\"1-宏观架构monorepo-与-模块化\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#1-宏观架构monorepo-与-模块化\",children:\"1. 宏观架构：Monorepo 与 模块化\"})}),\"\\n\",l(i.p,{children:[\"Vue 3 采用了 Monorepo 结构进行管理（通过 pnpm workspace），将核心功能拆分为独立的包，位于 \",n(i.code,{children:\"packages/\"}),\" 目录下。\"]}),\"\\n\",n(i.h3,{id:\"核心模块一览\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#核心模块一览\",children:\"核心模块一览\"})}),\"\\n\",l(i.table,{children:[n(i.thead,{children:l(i.tr,{children:[n(i.th,{style:{textAlign:\"left\"},children:\"模块名\"}),n(i.th,{style:{textAlign:\"left\"},children:\"作用\"}),n(i.th,{style:{textAlign:\"left\"},children:\"依赖关系\"})]})}),l(i.tbody,{children:[l(i.tr,{children:[n(i.td,{style:{textAlign:\"left\"},children:n(i.strong,{children:\"reactivity\"})}),n(i.td,{style:{textAlign:\"left\"},children:\"独立的响应式系统（Proxy, Ref, Effect）\"}),n(i.td,{style:{textAlign:\"left\"},children:\"无（可独立使用）\"})]}),l(i.tr,{children:[n(i.td,{style:{textAlign:\"left\"},children:n(i.strong,{children:\"runtime-core\"})}),n(i.td,{style:{textAlign:\"left\"},children:\"平台无关的运行时核心（VNode, Component, Diff, Scheduler）\"}),n(i.td,{style:{textAlign:\"left\"},children:\"依赖 reactivity\"})]}),l(i.tr,{children:[n(i.td,{style:{textAlign:\"left\"},children:n(i.strong,{children:\"runtime-dom\"})}),n(i.td,{style:{textAlign:\"left\"},children:\"针对浏览器的运行时实现（DOM 操作 API, 事件处理）\"}),n(i.td,{style:{textAlign:\"left\"},children:\"依赖 runtime-core\"})]}),l(i.tr,{children:[n(i.td,{style:{textAlign:\"left\"},children:n(i.strong,{children:\"compiler-core\"})}),n(i.td,{style:{textAlign:\"left\"},children:\"平台无关的编译器核心（Parse, Transform, Codegen）\"}),n(i.td,{style:{textAlign:\"left\"},children:\"无\"})]}),l(i.tr,{children:[n(i.td,{style:{textAlign:\"left\"},children:n(i.strong,{children:\"compiler-dom\"})}),n(i.td,{style:{textAlign:\"left\"},children:\"针对浏览器的编译器扩展（处理 v-model, v-html 等）\"}),n(i.td,{style:{textAlign:\"left\"},children:\"依赖 compiler-core\"})]}),l(i.tr,{children:[n(i.td,{style:{textAlign:\"left\"},children:n(i.strong,{children:\"vue\"})}),n(i.td,{style:{textAlign:\"left\"},children:\"入口包，整合 Runtime + Compiler\"}),n(i.td,{style:{textAlign:\"left\"},children:\"依赖上述所有\"})]})]})]}),\"\\n\",n(i.h2,{id:\"2-响应式系统-reactivity\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#2-响应式系统-reactivity\",children:\"2. 响应式系统 (Reactivity)\"})}),\"\\n\",l(i.p,{children:[\"Vue 3 抛弃了 Vue 2 的 \",n(i.code,{children:\"Object.defineProperty\"}),\"，全面拥抱 \",n(i.code,{children:\"Proxy\"}),\"。\"]}),\"\\n\",n(i.h3,{id:\"21-核心流程\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#21-核心流程\",children:\"2.1 核心流程\"})}),\"\\n\",l(i.ol,{children:[\"\\n\",l(i.li,{children:[n(i.strong,{children:\"Reactive\"}),\": 使用 \",n(i.code,{children:\"new Proxy(target, handler)\"}),\" 拦截对象读写。\"]}),\"\\n\",l(i.li,{children:[n(i.strong,{children:\"Track (依赖收集)\"}),\": 在 \",n(i.code,{children:\"get\"}),\" 拦截中，收集当前活跃的副作用函数 (\",n(i.code,{children:\"activeEffect\"}),\")。\"]}),\"\\n\",l(i.li,{children:[n(i.strong,{children:\"Trigger (派发更新)\"}),\": 在 \",n(i.code,{children:\"set\"}),\" 拦截中，从依赖地图 (\",n(i.code,{children:\"targetMap\"}),\") 中取出对应的副作用函数并执行。\"]}),\"\\n\"]}),\"\\n\",n(i.h3,{id:\"22-关键代码路径\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#22-关键代码路径\",children:\"2.2 关键代码路径\"})}),\"\\n\",l(i.ul,{children:[\"\\n\",l(i.li,{children:[n(i.code,{children:\"packages/reactivity/src/reactive.ts\"}),\": Proxy 的创建。\"]}),\"\\n\",l(i.li,{children:[n(i.code,{children:\"packages/reactivity/src/baseHandlers.ts\"}),\": \",n(i.code,{children:\"get\"}),\" (track) 和 \",n(i.code,{children:\"set\"}),\" (trigger) 的实现。\"]}),\"\\n\",l(i.li,{children:[n(i.code,{children:\"packages/reactivity/src/effect.ts\"}),\": 响应式系统的核心驱动力。\"]}),\"\\n\"]}),\"\\n\",l(i.blockquote,{children:[\"\\n\",l(i.p,{children:[n(i.strong,{children:\"架构思考\"}),\": Reactivity 模块完全解耦，你可以直接在 Node.js 或 React 项目中单独使用 \",n(i.code,{children:\"@vue/reactivity\"}),\"。\"]}),\"\\n\"]}),\"\\n\",n(i.h2,{id:\"3-运行时核心-runtime-core\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#3-运行时核心-runtime-core\",children:\"3. 运行时核心 (Runtime Core)\"})}),\"\\n\",n(i.p,{children:\"这是 Vue 3 的“心脏”，负责组件的渲染、更新和生命周期管理。\"}),\"\\n\",n(i.h3,{id:\"31-渲染器-renderer\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#31-渲染器-renderer\",children:\"3.1 渲染器 (Renderer)\"})}),\"\\n\",l(i.p,{children:[\"Vue 3 提供了 \",n(i.code,{children:\"createRenderer\"}),\" API，允许你构建自定义渲染器（如 Canvas, WebGL, 小程序）。\"]}),\"\\n\",n(i.figure,{\"data-rehype-pretty-code-figure\":\"\",children:n(i.pre,{style:{backgroundColor:\"#24292e\",color:\"#e1e4e8\"},tabIndex:\"0\",\"data-language\":\"typescript\",\"data-theme\":\"github-dark\",children:l(i.code,{\"data-language\":\"typescript\",\"data-theme\":\"github-dark\",style:{display:\"grid\"},children:[n(i.span,{\"data-line\":\"\",children:n(i.span,{style:{color:\"#6A737D\"},children:\"// 伪代码示例\"})}),\"\\n\",l(i.span,{\"data-line\":\"\",children:[n(i.span,{style:{color:\"#F97583\"},children:\"const\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\" { \"}),n(i.span,{style:{color:\"#79B8FF\"},children:\"render\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\" } \"}),n(i.span,{style:{color:\"#F97583\"},children:\"=\"}),n(i.span,{style:{color:\"#B392F0\"},children:\" createRenderer\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\"({\"})]}),\"\\n\",l(i.span,{\"data-line\":\"\",children:[n(i.span,{style:{color:\"#B392F0\"},children:\"  createElement\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\"(\"}),n(i.span,{style:{color:\"#FFAB70\"},children:\"type\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\") { \"}),n(i.span,{style:{color:\"#6A737D\"},children:\"/* ... */\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\" },\"})]}),\"\\n\",l(i.span,{\"data-line\":\"\",children:[n(i.span,{style:{color:\"#B392F0\"},children:\"  patchProp\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\"(\"}),n(i.span,{style:{color:\"#FFAB70\"},children:\"el\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\", \"}),n(i.span,{style:{color:\"#FFAB70\"},children:\"key\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\", \"}),n(i.span,{style:{color:\"#FFAB70\"},children:\"val\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\") { \"}),n(i.span,{style:{color:\"#6A737D\"},children:\"/* ... */\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\" },\"})]}),\"\\n\",l(i.span,{\"data-line\":\"\",children:[n(i.span,{style:{color:\"#B392F0\"},children:\"  insert\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\"(\"}),n(i.span,{style:{color:\"#FFAB70\"},children:\"el\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\", \"}),n(i.span,{style:{color:\"#FFAB70\"},children:\"parent\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\") { \"}),n(i.span,{style:{color:\"#6A737D\"},children:\"/* ... */\"}),n(i.span,{style:{color:\"#E1E4E8\"},children:\" }\"})]}),\"\\n\",n(i.span,{\"data-line\":\"\",children:n(i.span,{style:{color:\"#E1E4E8\"},children:\"})\"})})]})})}),\"\\n\",n(i.h3,{id:\"32-diff-算法-快速-diff\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#32-diff-算法-快速-diff\",children:\"3.2 Diff 算法 (快速 Diff)\"})}),\"\\n\",l(i.p,{children:[\"Vue 3 的 Diff 算法主要处理 \",n(i.code,{children:\"patchKeyedChildren\"}),\"。\"]}),\"\\n\",l(i.ol,{children:[\"\\n\",l(i.li,{children:[n(i.strong,{children:\"前置/后置预处理\"}),\": 先处理头部和尾部相同的节点。\"]}),\"\\n\",l(i.li,{children:[n(i.strong,{children:\"最长递增子序列 (LIS)\"}),\": 针对中间乱序部分，计算 LIS 以最小化 DOM 移动操作。\"]}),\"\\n\"]}),\"\\n\",n(i.h3,{id:\"33-调度器-scheduler\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#33-调度器-scheduler\",children:\"3.3 调度器 (Scheduler)\"})}),\"\\n\",l(i.p,{children:[\"Vue 的更新是异步的。\",n(i.code,{children:\"queueJob\"}),\" 和 \",n(i.code,{children:\"nextTick\"}),\" 保证了多次数据变更只触发一次组件更新。\"]}),\"\\n\",l(i.ul,{children:[\"\\n\",l(i.li,{children:[\"源码位置: \",n(i.code,{children:\"packages/runtime-core/src/scheduler.ts\"})]}),\"\\n\"]}),\"\\n\",n(i.h2,{id:\"4-编译器-compiler\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#4-编译器-compiler\",children:\"4. 编译器 (Compiler)\"})}),\"\\n\",l(i.p,{children:[\"Vue 3 编译器的最大亮点是\",n(i.strong,{children:\"编译时优化\"}),\"，它为运行时提供了足够的信息（Hints）来加速更新。\"]}),\"\\n\",n(i.h3,{id:\"41-编译流程\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#41-编译流程\",children:\"4.1 编译流程\"})}),\"\\n\",l(i.ol,{children:[\"\\n\",l(i.li,{children:[n(i.strong,{children:\"Parse\"}),\": Template -> AST。\"]}),\"\\n\",l(i.li,{children:[n(i.strong,{children:\"Transform\"}),\": AST -> AST (处理指令、优化)。\"]}),\"\\n\",l(i.li,{children:[n(i.strong,{children:\"Codegen\"}),\": AST -> Render Function String。\"]}),\"\\n\"]}),\"\\n\",n(i.h3,{id:\"42-核心优化策略\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#42-核心优化策略\",children:\"4.2 核心优化策略\"})}),\"\\n\",l(i.ul,{children:[\"\\n\",l(i.li,{children:[n(i.strong,{children:\"Patch Flags\"}),\": 在动态节点上打标记（如 TEXT, CLASS, PROPS），Diff 时只比对变化部分，跳过静态节点。\"]}),\"\\n\",l(i.li,{children:[n(i.strong,{children:\"Static Hoisting (静态提升)\"}),\": 将静态节点提升到渲染函数之外，只创建一次。\"]}),\"\\n\",l(i.li,{children:[n(i.strong,{children:\"Block Tree\"}),\": 将模版看作一个 Block，收集所有动态子节点，将树的遍历打平为数组遍历。\"]}),\"\\n\"]}),\"\\n\",n(i.h2,{id:\"5-总结与建议\",children:n(i.a,{className:\"subheading-anchor\",\"aria-label\":\"Link to section\",href:\"#5-总结与建议\",children:\"5. 总结与建议\"})}),\"\\n\",l(i.p,{children:[\"阅读源码建议从 \",n(i.code,{children:\"packages/vue/src/index.ts\"}),\" 入口开始，顺藤摸瓜：\"]}),\"\\n\",l(i.ol,{children:[\"\\n\",l(i.li,{children:[\"先看 \",n(i.strong,{children:\"Reactivity\"}),\"，它是独立的，最容易上手。\"]}),\"\\n\",l(i.li,{children:[\"再看 \",n(i.strong,{children:\"Runtime-Core\"}),\" 中的 \",n(i.code,{children:\"mount\"}),\" 和 \",n(i.code,{children:\"patch\"}),\" 流程。\"]}),\"\\n\",l(i.li,{children:[\"最后研究 \",n(i.strong,{children:\"Compiler\"}),\" 是如何生成带有 PatchFlags 的代码的。\"]}),\"\\n\"]}),\"\\n\",n(i.p,{children:\"Happy Coding!\"})]})}return{default:function(e={}){const{wrapper:l}=e.components||{};return l?n(l,{...e,children:n(_createMdxContent,{...e})}):_createMdxContent(e)}};",
+    "toc": [
+      {
+        "title": "1. 宏观架构：Monorepo 与 模块化",
+        "url": "#1-宏观架构monorepo-与-模块化",
+        "items": [
+          {
+            "title": "核心模块一览",
+            "url": "#核心模块一览",
+            "items": []
+          }
+        ]
+      },
+      {
+        "title": "2. 响应式系统 (Reactivity)",
+        "url": "#2-响应式系统-reactivity",
+        "items": [
+          {
+            "title": "2.1 核心流程",
+            "url": "#21-核心流程",
+            "items": []
+          },
+          {
+            "title": "2.2 关键代码路径",
+            "url": "#22-关键代码路径",
+            "items": []
+          }
+        ]
+      },
+      {
+        "title": "3. 运行时核心 (Runtime Core)",
+        "url": "#3-运行时核心-runtime-core",
+        "items": [
+          {
+            "title": "3.1 渲染器 (Renderer)",
+            "url": "#31-渲染器-renderer",
+            "items": []
+          },
+          {
+            "title": "3.2 Diff 算法 (快速 Diff)",
+            "url": "#32-diff-算法-快速-diff",
+            "items": []
+          },
+          {
+            "title": "3.3 调度器 (Scheduler)",
+            "url": "#33-调度器-scheduler",
+            "items": []
+          }
+        ]
+      },
+      {
+        "title": "4. 编译器 (Compiler)",
+        "url": "#4-编译器-compiler",
+        "items": [
+          {
+            "title": "4.1 编译流程",
+            "url": "#41-编译流程",
+            "items": []
+          },
+          {
+            "title": "4.2 核心优化策略",
+            "url": "#42-核心优化策略",
+            "items": []
+          }
+        ]
+      },
+      {
+        "title": "5. 总结与建议",
+        "url": "#5-总结与建议",
+        "items": []
+      }
+    ],
+    "slugAsParams": "vue3-source-code-guide",
+    "permalink": "/posts/vue3-source-code-guide"
   }
 ]
