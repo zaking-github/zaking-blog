@@ -40,8 +40,8 @@ export function TableOfContents({ toc }: TocProps) {
   if (!toc?.length) return null
 
   return (
-    <nav className="space-y-2">
-      <h4 className="font-medium">On This Page</h4>
+    <nav className="space-y-3">
+      <h4 className="font-semibold tracking-tight">目录</h4>
       <Tree tree={toc} activeId={activeId} />
     </nav>
   )
@@ -65,9 +65,9 @@ function Tree({
           <Link
             href={item.url}
             className={cn(
-              "inline-block no-underline transition-colors hover:text-foreground",
+              "inline-block rounded-md px-2 py-1 no-underline transition-colors hover:bg-accent/70 hover:text-foreground",
               item.url === `#${activeId}`
-                ? "font-medium text-foreground"
+                ? "bg-primary/10 font-medium text-primary"
                 : "text-muted-foreground"
             )}
           >

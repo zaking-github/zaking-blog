@@ -32,7 +32,7 @@ export async function GET(request: Request) {
               letterSpacing: '0.1em',
             }}
           >
-            ZAKING'S TECH BLOG
+            ZAKING&apos;S TECH BLOG
           </div>
           <div
             style={{
@@ -81,8 +81,8 @@ export async function GET(request: Request) {
         height: 630,
       }
     )
-  } catch (e: any) {
-    return new Response(`Failed to generate the image`, {
+  } catch {
+    return new Response("Failed to generate the image", {
       status: 500,
     })
   }

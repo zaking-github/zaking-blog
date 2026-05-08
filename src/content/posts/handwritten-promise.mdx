@@ -1,0 +1,661 @@
+---
+title: "Promise 手写实现"
+date: "2026-05-08"
+description: "基于 Promise/A+ 规范，从状态机、回调队列、then 链式调用到 resolvePromise 核心算法，完整拆解手写 Promise 的实现过程。"
+published: true
+category: "JavaScript"
+tags: ["Promise", "JavaScript", "Promise/A+", "源码实现"]
+---
+
+# 从零手写 Promise — 完整教程
+
+> 基于 Promise/A+ 规范，分 5 个版本渐进式实现，872 项规范测试全部通过。
+
+---
+
+## 目录
+
+1. [Promise 本质：有限状态机](#1-promise-本质有限状态机)
+2. [V1：基础状态机 + 同步 resolve/reject](#2-v1基础状态机--同步-resolvereject)
+3. [V2：异步支持 + 回调队列](#3-v2异步支持--回调队列)
+4. [V3：then 链式调用](#4-v3then-链式调用)
+5. [V4：Promise 解析过程（核心算法）](#5-v4promise-解析过程核心算法)
+6. [V5：最终版 — 完整实现](#6-v5最终版--完整实现)
+7. [静态方法实现](#7-静态方法实现)
+8. [易错点与面试题](#8-易错点与面试题)
+9. [完整源码](#9-完整源码)
+
+---
+
+## 1. Promise 本质：有限状态机
+
+Promise 的核心是一个**三态有限状态机**，状态只能**单向转换**：
+
+```
+                  resolve(value)
+  ┌─────────┐ ──────────────────→ ┌───────────┐
+  │ pending  │                     │ fulfilled │
+  │ (等待态) │                     │ (完成态)  │
+  └─────────┘                     └───────────┘
+       │                               ↑ 不可逆
+       │                               ↑ value 不可变
+       │
+       │  reject(reason)
+       ↓
+  ┌─────────┐
+  │ rejected │  ← 不可逆
+  │ (拒绝态) │  ← reason 不可变
+  └─────────┘
+```
+
+**核心规则**：
+
+| 规则 | 说明 |
+|------|------|
+| 状态不可逆 | 只能从 pending → fulfilled 或 pending → rejected |
+| 值不可变 | fulfilled 后 value 不可变（=== 意义），rejected 后 reason 不可变 |
+| 只执行一次 | resolve/reject 只第一次生效，后续调用被忽略 |
+
+---
+
+## 2. V1：基础状态机 + 同步 resolve/reject
+
+### 代码
+
+```javascript
+const PENDING = 'pending';
+const FULFILLED = 'fulfilled';
+const REJECTED = 'rejected';
+
+class MyPromiseV1 {
+  constructor(executor) {
+    this.status = PENDING;
+    this.value = undefined;
+    this.reason = undefined;
+
+    const resolve = (value) => {
+      if (this.status === PENDING) {
+        this.status = FULFILLED;
+        this.value = value;
+      }
+    };
+
+    const reject = (reason) => {
+      if (this.status === PENDING) {
+        this.status = REJECTED;
+        this.reason = reason;
+      }
+    };
+
+    try {
+      executor(resolve, reject);
+    } catch (error) {
+      reject(error);
+    }
+  }
+
+  then(onFulfilled, onRejected) {
+    if (this.status === FULFILLED) {
+      onFulfilled(this.value);
+    }
+    if (this.status === REJECTED) {
+      onRejected(this.reason);
+    }
+    // pending 状态时不做处理（V2 补齐）
+  }
+}
+```
+
+### 设计要点
+
+| 要点 | 说明 |
+|------|------|
+| executor 立即执行 | `new Promise(fn)` 中 fn 同步执行 |
+| 状态守卫 | `if (this.status === PENDING)` 确保只执行一次 |
+| try-catch | executor 内抛异常自动转 reject |
+
+### V1 的缺陷
+
+```javascript
+// 异步 resolve 后回调丢失！
+new MyPromiseV1(resolve => {
+  setTimeout(() => resolve(42), 100);
+}).then(val => console.log(val)); // ❌ 永远不会执行
+```
+
+**原因**：`then` 执行时 status 还是 pending，回调没有被保存；异步 resolve 后，没有地方触发回调执行。
+
+---
+
+## 3. V2：异步支持 + 回调队列
+
+### 核心思路
+
+当 `then` 时 Promise 还在 pending 状态，将回调**存入队列**；等到 `resolve/reject` 时，再从队列中**依次取出执行**。
+
+```
+┌─────────────┐     ┌──────────────────┐
+│ new Promise  │────→│ then(onFulfilled) │
+│ (pending)    │     │ status=pending?   │
+└─────────────┘     │ → 存入回调队列    │
+      │              └──────────────────┘
+      ▼
+┌─────────────┐     ┌──────────────────┐
+│ resolve(val) │────→│ 遍历回调队列     │
+│ (fulfilled)  │     │ 逐个执行回调     │
+└─────────────┘     └──────────────────┘
+```
+
+### 关键改动
+
+```javascript
+// 构造函数中新增两个队列
+this.onFulfilledCallbacks = [];
+this.onRejectedCallbacks = [];
+
+// resolve 中：状态变更后执行所有缓存回调
+const resolve = (value) => {
+  if (this.status === PENDING) {
+    this.status = FULFILLED;
+    this.value = value;
+    this.onFulfilledCallbacks.forEach(fn => fn()); // ★
+  }
+};
+
+// then 中：pending 状态时存入队列
+if (this.status === PENDING) {
+  this.onFulfilledCallbacks.push(() => onFulfilled(this.value)); // ★
+  this.onRejectedCallbacks.push(() => onRejected(this.reason));
+}
+```
+
+### V2 的缺陷
+
+then 方法没有返回值，无法链式调用：
+
+```javascript
+new MyPromiseV2(resolve => resolve(1))
+  .then(val => val + 1)  // 返回 undefined
+  .then(val => val * 2); // ❌ TypeError: Cannot read property 'then' of undefined
+```
+
+---
+
+## 4. V3：then 链式调用
+
+### 规范要求
+
+`then` **必须返回一个新的 Promise**，这是链式调用的基础：
+
+```
+promise1.then(onFulfilled, onRejected) → promise2
+```
+
+**四种情况的处理**：
+
+| 情况 | promise2 的结果 |
+|------|-----------------|
+| onFulfilled 返回值 x | 执行 `[[Resolve]](promise2, x)` |
+| onFulfilled 抛出异常 e | promise2 以 e 为 reason 被 reject |
+| onFulfilled 不是函数 | promise2 以 promise1.value 被 fulfill（值穿透） |
+| onRejected 不是函数 | promise2 以 promise1.reason 被 reject（值穿透） |
+
+### 值穿透的实现
+
+```javascript
+// 非函数参数替换为透传函数
+onFulfilled = typeof onFulfilled === 'function'
+  ? onFulfilled
+  : (value) => value;          // 成功值直接透传
+
+onRejected = typeof onRejected === 'function'
+  ? onRejected
+  : (reason) => { throw reason; }; // 拒绝原因继续抛出
+```
+
+### then 返回新 Promise
+
+```javascript
+then(onFulfilled, onRejected) {
+  onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : (v) => v;
+  onRejected = typeof onRejected === 'function' ? onRejected : (r) => { throw r; };
+
+  const promise2 = new MyPromise((resolve, reject) => {
+    const handleFulfilled = () => {
+      queueMicrotask(() => {         // ★ 异步执行（规范要求）
+        try {
+          const x = onFulfilled(this.value);
+          resolvePromise(promise2, x, resolve, reject); // ★ 核心解析
+        } catch (error) {
+          reject(error);
+        }
+      });
+    };
+
+    if (this.status === FULFILLED) handleFulfilled();
+    else if (this.status === REJECTED) handleRejected();
+    else {
+      this.onFulfilledCallbacks.push(handleFulfilled);
+      this.onRejectedCallbacks.push(handleRejected);
+    }
+  });
+
+  return promise2;
+}
+```
+
+### 为什么必须异步执行？
+
+规范要求：回调必须在执行上下文栈仅包含**平台代码**时调用。通俗来说——回调不能同步执行。
+
+```javascript
+console.log(1);
+Promise.resolve(2).then(val => console.log(val));
+console.log(3);
+// 输出顺序：1 → 3 → 2（回调在微任务中执行）
+```
+
+---
+
+## 5. V4：Promise 解析过程（核心算法）
+
+这是整个 Promise 最复杂也最关键的部分——`resolvePromise` 函数，实现了规范的 `[[Resolve]](promise, x)` 过程。
+
+### 流程图
+
+```
+resolvePromise(promise2, x, resolve, reject)
+                 │
+                 ▼
+      ┌─ promise2 === x ? ──→ reject(TypeError)  ① 防循环引用
+      │
+      ▼
+┌─ x 是 MyPromise ? ──→ 采用 x 的状态             ②
+│
+▼
+┌─ x 是对象/函数 ? ─────────────────────────┐
+│                                            │
+│  否 → resolve(x)                           ⑤
+│                                            │
+│  是 → 尝试读取 x.then                       │
+│         │                                   │
+│    读取抛异常? ──→ reject(e)                 ③
+│         │                                   │
+│    then 是函数? ──→ 是：调用 then           ④
+│         │              (thenable 同化)       │
+│    then 不是函数? ──→ resolve(x)            │
+│
+▼
+x 是普通值 → resolve(x)                        ⑤
+```
+
+### 完整代码
+
+```javascript
+function resolvePromise(promise2, x, resolve, reject) {
+  // ① 循环引用检测
+  if (promise2 === x) {
+    return reject(new TypeError('Chaining cycle detected for promise'));
+  }
+
+  // ② x 是 MyPromise 实例 → 采用其状态
+  if (x instanceof MyPromise) {
+    x.then(resolve, reject);
+    return;
+  }
+
+  // ③ x 是对象或函数
+  if (x !== null && (typeof x === 'object' || typeof x === 'function')) {
+    let then;
+    let called = false; // 防止 resolvePromise/rejectPromise 被多次调用
+
+    try {
+      then = x.then; // 先缓存引用，避免多次访问 getter
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    // ④ then 是函数 → thenable 同化
+    if (typeof then === 'function') {
+      try {
+        then.call(
+          x,
+          (y) => {
+            if (called) return;
+            called = true;
+            resolvePromise(promise2, y, resolve, reject); // 递归解析
+          },
+          (r) => {
+            if (called) return;
+            called = true;
+            reject(r);
+          }
+        );
+      } catch (error) {
+        if (called) return;
+        called = true;
+        reject(error);
+      }
+    } else {
+      resolve(x); // then 不是函数，普通对象
+    }
+  } else {
+    // ⑤ 普通值
+    resolve(x);
+  }
+}
+```
+
+### 为什么需要 `called` 标志？
+
+thenable 的 `then` 方法可能不可信——它可能同时调用 resolvePromise 和 rejectPromise，或者多次调用同一个：
+
+```javascript
+const badThenable = {
+  then(resolve, reject) {
+    resolve(1);
+    resolve(2);      // 应忽略
+    reject('error'); // 应忽略
+  }
+};
+```
+
+规范要求：**首次调用优先，后续全部忽略**。`called` 标志正是为此设计。
+
+### 为什么 `x.then` 要先缓存？
+
+```javascript
+// 危险的 thenable：getter 有副作用
+const tricky = {
+  get then() {
+    count++;
+    if (count === 1) return (resolve) => resolve('first');
+    return (resolve) => resolve('second');
+  }
+};
+```
+
+先存储 `then` 引用再使用，确保行为一致性。
+
+---
+
+## 6. V5：最终版 — 完整实现
+
+最终版本在 V3/V4 的基础上，完善了**构造函数中的 resolve 对 thenable 的处理**。
+
+### resolve 函数的完整逻辑
+
+构造函数中的 `resolve` 也需要处理 thenable（不仅仅是 `then` 返回的值）：
+
+```javascript
+const p = new Promise(resolve => {
+  resolve({ then: (res) => res('from thenable') });
+});
+// p 的值是 'from thenable'，不是 thenable 对象本身
+```
+
+完整 resolve 实现：
+
+```javascript
+const resolve = (value) => {
+  if (this.status !== PENDING) return;
+
+  // 普通值：直接完成
+  if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
+    this.status = FULFILLED;
+    this.value = value;
+    this.onFulfilledCallbacks.forEach(fn => fn());
+    return;
+  }
+
+  // MyPromise 实例：采用其状态
+  if (value instanceof MyPromise) {
+    value.then(v => resolve(v), r => reject(r));
+    return;
+  }
+
+  // thenable 同化
+  let then;
+  try {
+    then = value.then;
+  } catch (error) {
+    reject(error);
+    return;
+  }
+
+  if (typeof then === 'function') {
+    let called = false;
+    try {
+      then.call(value,
+        (y) => { if (!called) { called = true; resolve(y); } },
+        (r) => { if (!called) { called = true; reject(r); } }
+      );
+    } catch (error) {
+      if (!called) reject(error);
+    }
+  } else {
+    this.status = FULFILLED;
+    this.value = value;
+    this.onFulfilledCallbacks.forEach(fn => fn());
+  }
+};
+```
+
+---
+
+## 7. 静态方法实现
+
+### 方法一览
+
+| 方法 | 行为 | 返回值 |
+|------|------|--------|
+| `Promise.resolve(value)` | 值/Promise/thenable → 包装为 Promise | Promise |
+| `Promise.reject(reason)` | 任何值 → rejected Promise | Promise |
+| `Promise.all(promises)` | 全部成功才成功，任一失败即失败 | Promise\<array\> |
+| `Promise.race(promises)` | 第一个 settled 的决定结果 | Promise |
+| `Promise.allSettled(promises)` | 等所有 settled，返回状态数组 | Promise\<array\> |
+| `Promise.any(promises)` | 第一个成功即成功，全失败才失败 | Promise |
+| `Promise.prototype.catch` | `then(null, onRejected)` 的语法糖 | Promise |
+| `Promise.prototype.finally` | 不论成败都执行，值穿透 | Promise |
+
+### Promise.all 执行流程
+
+```
+┌──────┐ ┌──────┐ ┌──────┐
+│ p1   │ │ p2   │ │ p3   │
+│ ✔ 1  │ │ ✔ 2  │ │ ✗ err│
+└──┬───┘ └──┬───┘ └──┬───┘
+   │         │         │
+   ▼         ▼         ▼
+ results[0]=1  results[1]=2  → reject(err)
+ count=1       count=2
+                               ← 任一失败，立即 reject
+```
+
+### Promise.any vs Promise.race 对比
+
+| | Promise.race | Promise.any |
+|---|---|---|
+| **第一个 settled** | 决定结果（成功或失败） | — |
+| **第一个成功** | — | 决定结果 |
+| **全部失败** | 第一个失败的原因 | AggregateError |
+| **空数组** | 永远 pending | 立即 reject(AggregateError) |
+
+### Promise.all vs Promise.allSettled 对比
+
+| | Promise.all | Promise.allSettled |
+|---|---|---|
+| **全部成功** | `[v1, v2, v3]` | `[{status:'fulfilled',value:v1}, ...]` |
+| **有失败** | 立即 reject | 等全部 settled，返回混合数组 |
+| **短路行为** | 有（任一失败即停止） | 无（等全部完成） |
+
+### 核心代码
+
+```javascript
+static all(promises) {
+  return new MyPromise((resolve, reject) => {
+    const results = [];
+    let count = 0;
+    const len = promises.length;
+    if (len === 0) return resolve([]);
+
+    promises.forEach((p, index) => {
+      MyPromise.resolve(p).then(
+        (value) => {
+          results[index] = value; // ★ 保证顺序
+          count++;
+          if (count === len) resolve(results);
+        },
+        (reason) => reject(reason)
+      );
+    });
+  });
+}
+
+static race(promises) {
+  return new MyPromise((resolve, reject) => {
+    promises.forEach(p => MyPromise.resolve(p).then(resolve, reject));
+  });
+}
+
+static allSettled(promises) {
+  return new MyPromise((resolve) => {
+    const results = [];
+    let count = 0;
+    const len = promises.length;
+    if (len === 0) return resolve([]);
+
+    promises.forEach((p, index) => {
+      MyPromise.resolve(p).then(
+        (value) => {
+          results[index] = { status: FULFILLED, value };
+          if (++count === len) resolve(results);
+        },
+        (reason) => {
+          results[index] = { status: REJECTED, reason };
+          if (++count === len) resolve(results);
+        }
+      );
+    });
+  });
+}
+
+static any(promises) {
+  return new MyPromise((resolve, reject) => {
+    const errors = [];
+    let count = 0;
+    const len = promises.length;
+    if (len === 0) return reject(new AggregateError([], 'All promises were rejected'));
+
+    promises.forEach((p, index) => {
+      MyPromise.resolve(p).then(
+        (value) => resolve(value),
+        (reason) => {
+          errors[index] = reason;
+          if (++count === len) reject(new AggregateError(errors, 'All promises were rejected'));
+        }
+      );
+    });
+  });
+}
+```
+
+---
+
+## 8. 易错点与面试题
+
+### 🔴 易错点 1：resolve 的 thenable 解包
+
+```javascript
+const p = new Promise(resolve => {
+  resolve({ then: (res) => res('unwrapped') });
+});
+// p 的值是 'unwrapped'，不是 { then: ... }
+```
+
+**常见错误**：直接 `this.value = value`，没有检查 thenable。
+
+### 🔴 易错点 2：then 回调必须异步执行
+
+```javascript
+console.log(1);
+new MyPromise(resolve => resolve(2))
+  .then(val => console.log(val));
+console.log(3);
+// 必须输出 1, 3, 2（不是 1, 2, 3）
+```
+
+### 🔴 易错点 3：循环引用检测
+
+```javascript
+const p = new Promise(resolve => resolve(1));
+p.then(() => p); // TypeError: Chaining cycle detected
+```
+
+`promise2 === x` 时必须 reject，否则无限递归。
+
+### 🔴 易错点 4：called 标志防止多次调用
+
+thenable 的 `then` 可能不可信，必须用 `called` 标志确保 resolve/reject 只执行一次。
+
+### 🔴 易错点 5：all 中 results 的顺序保证
+
+```javascript
+// ❌ 错误写法：results.push(value) 顺序不确定
+// ✅ 正确写法：results[index] = value  按原始索引存储
+```
+
+### 🟡 面试题：手写 Promise 的调度顺序
+
+```javascript
+console.log('start');
+setTimeout(() => console.log('timeout'), 0);
+Promise.resolve()
+  .then(() => console.log('promise1'))
+  .then(() => console.log('promise2'));
+console.log('end');
+
+// 输出：start → end → promise1 → promise2 → timeout
+// 原因：微任务（Promise.then）优先于宏任务（setTimeout）
+```
+
+### 🟡 面试题：then 中返回 Promise
+
+```javascript
+Promise.resolve(1)
+  .then(val => new Promise(resolve => resolve(val + 10)))
+  .then(val => console.log(val)); // 11
+
+// then 回调返回 Promise 时，promise2 采用返回 Promise 的状态
+// 这正是 resolvePromise 中 "x 是 MyPromise" 分支的作用
+```
+
+---
+
+## 9. 源码结构
+
+这篇文章整理自一个独立的 `handwritten-promise` 练习项目，核心文件如下：
+
+| 文件 | 作用 |
+|------|------|
+| `promise.js` | 手写 Promise 的完整实现，包含 V1/V2/V3 渐进版本和最终版 `MyPromise` |
+| `test.js` | 自定义测试用例，覆盖状态流转、异步回调、链式调用、thenable、静态方法等场景 |
+| `aplus-adapter.js` | Promise/A+ 官方测试适配器，用于对接 `promises-aplus-tests` |
+| `package.json` | 项目依赖与 CommonJS 模块配置 |
+
+### 版本演进总结
+
+| 版本 | 新增能力 | 关键实现 |
+|------|---------|---------|
+| V1 | 状态机 + 同步 resolve/reject | `status` 守卫 + try-catch |
+| V2 | 异步 resolve + 回调队列 | `onFulfilledCallbacks` 数组 |
+| V3 | then 链式调用 | then 返回新 Promise + `queueMicrotask` |
+| V4 | Promise 解析过程 | `resolvePromise` 递归解析 |
+| V5 | 构造函数中 thenable 解包 | resolve 中的完整 thenable 处理 |
+| 最终 | 静态方法 + catch/finally | `all/race/allSettled/any` |
+
+### 验证结果
+
+- ✅ 自定义测试：32 项全部通过
+- ✅ Promise/A+ 官方测试：**872 项全部通过**

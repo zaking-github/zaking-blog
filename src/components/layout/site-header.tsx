@@ -1,52 +1,40 @@
 import Link from "next/link"
+import { Github, Leaf } from "lucide-react"
 import { siteConfig } from "@/lib/config"
 import { ModeToggle } from "@/components/shared/mode-toggle"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Github } from "lucide-react"
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 max-w-screen-2xl items-center mx-auto px-4">
-        <div className="mr-4 hidden md:flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="hidden font-bold sm:inline-block">
-              {siteConfig.name}
-            </span>
-          </Link>
-          <nav className="flex items-center gap-6 text-sm font-medium">
-            {siteConfig.nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="transition-colors hover:text-foreground/80 text-foreground/60"
-              >
-                {item.title}
-              </Link>
-            ))}
-          </nav>
-        </div>
-        
-        {/* Mobile Menu Placeholder (Hidden on Desktop) */}
-        <div className="md:hidden mr-auto font-bold">
-           <Link href="/">{siteConfig.name}</Link>
-        </div>
+    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+      <div className="mx-auto flex h-16 max-w-6xl items-center px-4">
+        <Link href="/" className="mr-7 flex items-center gap-2.5">
+          <span className="flex size-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-sm">
+            <Leaf className="size-4" />
+          </span>
+          <span className="font-semibold tracking-tight">{siteConfig.name}</span>
+        </Link>
 
-        <div className="flex flex-1 items-center justify-end space-x-2">
-          <nav className="flex items-center space-x-1">
+        <nav className="hidden items-center gap-1 rounded-full border border-border/70 bg-card/70 p-1 text-sm font-medium shadow-sm md:flex">
+          {siteConfig.nav.map((item) => (
             <Link
-              href={siteConfig.links.github}
-              target="_blank"
-              rel="noreferrer"
+              key={item.href}
+              href={item.href}
+              className="rounded-full px-3.5 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
-              <Button variant="ghost" size="icon">
-                <Github className="h-4 w-4" />
-                <span className="sr-only">GitHub</span>
-              </Button>
+              {item.title}
             </Link>
-            <ModeToggle />
-          </nav>
+          ))}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-1">
+          <Link href={siteConfig.links.github} target="_blank" rel="noreferrer">
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <Github className="size-4" />
+              <span className="sr-only">GitHub</span>
+            </Button>
+          </Link>
+          <ModeToggle />
         </div>
       </div>
     </header>
