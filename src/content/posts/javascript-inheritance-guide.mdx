@@ -1,0 +1,880 @@
+---
+title: "JavaScript 继承详解：从原型链到 class extends"
+date: "2026-05-11"
+description: "系统讲透 JavaScript 的继承机制，涵盖原型链继承、借用构造函数、组合继承、原型式继承、寄生式继承、寄生组合继承以及 ES6 class extends 的实现原理、优缺点与适用场景。"
+published: true
+category: "JavaScript"
+tags: ["JavaScript", "Inheritance", "Prototype", "ES6", "class"]
+---
+
+# JavaScript 继承详解：从原型链到 `class extends`
+
+很多人第一次学 JavaScript 继承时，会觉得概念很多：`prototype`、`__proto__`、构造函数、原型链、`Object.create()`、`class extends`。如果只是背结论，很容易把几种继承方式混在一起。
+
+这篇文章按**教程式**思路来讲，不只罗列“有哪些继承方式”，而是先把底层关系讲清楚，再逐步推导出各方案的实现、原理、优缺点和适用场景。
+
+---
+
+## 目录
+
+1. [先搞清楚：JavaScript 到底是怎么继承的](#1-先搞清楚javascript-到底是怎么继承的)
+2. [继承前的四个基础概念](#2-继承前的四个基础概念)
+3. [方式一：原型链继承](#3-方式一原型链继承)
+4. [方式二：借用构造函数继承](#4-方式二借用构造函数继承)
+5. [方式三：组合继承](#5-方式三组合继承)
+6. [方式四：原型式继承](#6-方式四原型式继承)
+7. [方式五：寄生式继承](#7-方式五寄生式继承)
+8. [方式六：寄生组合继承](#8-方式六寄生组合继承)
+9. [方式七：ES6 `class extends`](#9-方式七es6-class-extends)
+10. [所有继承方式对比总结](#10-所有继承方式对比总结)
+11. [面试和实战里怎么选](#11-面试和实战里怎么选)
+
+---
+
+## 1. 先搞清楚：JavaScript 到底是怎么继承的
+
+JavaScript 和 Java、C++ 这类语言不一样，它不是传统意义上的“类继承”，而是**基于原型（prototype）的继承**。
+
+也就是说：
+
+- 对象可以从另一个对象“委托”属性和方法
+- 当你访问一个对象上不存在的属性时，会沿着原型链继续查找
+- 所谓“继承”，本质上就是把这种查找链路建立起来
+
+你可以先记住一句话：
+
+> JavaScript 的继承，本质上是在控制“一个对象查不到属性时，下一步去哪里找”。
+
+后面讲到的所有继承方式，其实都围绕这一点展开。
+
+---
+
+## 2. 继承前的四个基础概念
+
+如果下面四个概念不清楚，后面的继承方式很容易只会背代码，不理解原理。
+
+### 2.1 构造函数
+
+```javascript
+function Animal(name) {
+  this.name = name;
+  this.colors = ["black", "white"];
+}
+```
+
+当你执行 `new Animal("cat")` 时，会创建一个新对象，并把这个新对象绑定到函数内部的 `this` 上。
+
+### 2.2 `prototype`
+
+每个函数都有一个 `prototype` 属性，它默认是一个对象：
+
+```javascript
+function Animal(name) {
+  this.name = name;
+}
+
+Animal.prototype.sayName = function () {
+  console.log(this.name);
+};
+```
+
+这里的 `sayName` 不会放到每个实例自身上，而是放到 `Animal.prototype` 上，供实例共享。
+
+### 2.3 实例的隐式原型
+
+```javascript
+const cat = new Animal("cat");
+```
+
+此时会建立这样一条关系：
+
+```javascript
+cat.__proto__ === Animal.prototype; // true
+```
+
+更准确地说，实例对象的内部 `[[Prototype]]` 会指向构造函数的 `prototype`。`__proto__` 只是大多数环境里暴露出来的访问方式。
+
+### 2.4 原型链
+
+当你访问：
+
+```javascript
+cat.sayName();
+```
+
+查找过程是：
+
+1. 先看 `cat` 自身有没有 `sayName`
+2. 如果没有，去 `cat.__proto__`，也就是 `Animal.prototype` 上找
+3. 如果还没有，就继续沿着原型往上找
+4. 直到找到 `Object.prototype`
+5. 再往上就是 `null`，查找结束
+
+简化后的关系图：
+
+```text
+cat
+  ↓
+Animal.prototype
+  ↓
+Object.prototype
+  ↓
+null
+```
+
+所以，“继承”的核心就是：**让子类型实例能够沿着原型链访问到父类型的方法，或者让父构造函数能够给子实例初始化自己的属性。**
+
+---
+
+## 3. 方式一：原型链继承
+
+这是最早、也最容易理解的一种继承方式。
+
+### 3.1 实现
+
+```javascript
+function Animal(name) {
+  this.name = name;
+  this.colors = ["black", "white"];
+}
+
+Animal.prototype.sayName = function () {
+  console.log(this.name);
+};
+
+function Dog() {}
+
+Dog.prototype = new Animal("default");
+Dog.prototype.constructor = Dog;
+
+const dog1 = new Dog();
+const dog2 = new Dog();
+
+dog1.sayName(); // default
+```
+
+### 3.2 原理
+
+关键代码是：
+
+```javascript
+Dog.prototype = new Animal("default");
+```
+
+这行代码做了两件事：
+
+1. 创建了一个 `Animal` 实例对象
+2. 让这个实例对象赋值给 `Dog.prototype`
+
+于是 `dog1` 的原型链会变成：
+
+```text
+dog1
+  ↓
+Dog.prototype（其实是一个 Animal 实例）
+  ↓
+Animal.prototype
+  ↓
+Object.prototype
+  ↓
+null
+```
+
+因此，`dog1` 就能访问到 `Animal.prototype.sayName`。
+
+### 3.3 优点
+
+- 实现简单
+- 子类实例可以访问父类原型上的方法
+- 容易直观看到原型链关系
+
+### 3.4 缺点
+
+#### 缺点 1：无法给父构造函数传参
+
+```javascript
+const dog1 = new Dog();
+const dog2 = new Dog();
+```
+
+这里没法在创建 `dog1`、`dog2` 时，分别给 `Animal` 传不同的 `name`。
+
+#### 缺点 2：引用类型属性会被所有实例共享
+
+```javascript
+dog1.colors.push("brown");
+
+console.log(dog1.colors); // ["black", "white", "brown"]
+console.log(dog2.colors); // ["black", "white", "brown"]
+```
+
+原因是 `colors` 在 `Dog.prototype` 上，而 `dog1`、`dog2` 访问到的是同一份数据。
+
+### 3.5 适用场景
+
+几乎只适合教学和理解原型链原理，实际开发中单独使用很少。
+
+---
+
+## 4. 方式二：借用构造函数继承
+
+也叫**构造函数继承**、**经典继承**。
+
+### 4.1 实现
+
+```javascript
+function Animal(name) {
+  this.name = name;
+  this.colors = ["black", "white"];
+}
+
+Animal.prototype.sayName = function () {
+  console.log(this.name);
+};
+
+function Dog(name) {
+  Animal.call(this, name);
+}
+
+const dog1 = new Dog("wangcai");
+const dog2 = new Dog("dahuang");
+
+dog1.colors.push("brown");
+
+console.log(dog1.name);   // wangcai
+console.log(dog2.name);   // dahuang
+console.log(dog1.colors); // ["black", "white", "brown"]
+console.log(dog2.colors); // ["black", "white"]
+```
+
+### 4.2 原理
+
+核心是：
+
+```javascript
+Animal.call(this, name);
+```
+
+它不是在建立原型链，而是**把父构造函数当普通函数执行一次**，并把其中的 `this` 指向当前子类实例。
+
+所以子类实例会直接拿到父构造函数内部定义的属性：
+
+- `name`
+- `colors`
+
+但注意：这只是“拷贝了父构造函数中的实例属性初始化逻辑”，**没有继承父原型上的方法**。
+
+### 4.3 优点
+
+- 可以向父构造函数传参
+- 每个实例都有自己独立的属性副本
+- 不会共享引用类型属性
+
+### 4.4 缺点
+
+#### 缺点 1：拿不到父原型上的方法
+
+```javascript
+dog1.sayName(); // TypeError: dog1.sayName is not a function
+```
+
+因为没有建立：
+
+```javascript
+dog1 -> Dog.prototype -> Animal.prototype
+```
+
+这条链路。
+
+#### 缺点 2：方法无法复用
+
+如果把方法直接写在构造函数里：
+
+```javascript
+function Animal(name) {
+  this.name = name;
+  this.sayName = function () {
+    console.log(this.name);
+  };
+}
+```
+
+那每创建一个实例，都会生成一份新的 `sayName` 函数，浪费内存。
+
+### 4.5 适用场景
+
+如果只是想复用父构造函数里的属性初始化逻辑，可以用。但单独使用依然不够完整。
+
+---
+
+## 5. 方式三：组合继承
+
+这是 ES5 时代最常见的一种继承方案，名字叫“组合”，因为它把前两种方式组合起来了。
+
+### 5.1 实现
+
+```javascript
+function Animal(name) {
+  this.name = name;
+  this.colors = ["black", "white"];
+}
+
+Animal.prototype.sayName = function () {
+  console.log(this.name);
+};
+
+function Dog(name, age) {
+  Animal.call(this, name);
+  this.age = age;
+}
+
+Dog.prototype = new Animal();
+Dog.prototype.constructor = Dog;
+
+Dog.prototype.sayAge = function () {
+  console.log(this.age);
+};
+
+const dog1 = new Dog("wangcai", 2);
+const dog2 = new Dog("dahuang", 3);
+
+dog1.colors.push("brown");
+
+dog1.sayName(); // wangcai
+dog1.sayAge();  // 2
+console.log(dog2.colors); // ["black", "white"]
+```
+
+### 5.2 原理
+
+组合继承分两步：
+
+#### 第一步：借用构造函数，继承实例属性
+
+```javascript
+Animal.call(this, name);
+```
+
+这样每个 `Dog` 实例都会有自己独立的 `name` 和 `colors`。
+
+#### 第二步：原型链继承，继承原型方法
+
+```javascript
+Dog.prototype = new Animal();
+```
+
+这样 `Dog.prototype` 的原型会指向 `Animal.prototype`，实例就能访问到父类方法。
+
+所以它同时解决了两个问题：
+
+- 可以传参
+- 可以复用父原型方法
+
+### 5.3 优点
+
+- 融合了原型链继承和构造函数继承的优点
+- 既能继承实例属性，又能继承原型方法
+- 可以向父构造函数传参
+- 引用类型属性不会共享
+
+### 5.4 缺点
+
+#### 缺点：父构造函数会执行两次
+
+一次在这里：
+
+```javascript
+Animal.call(this, name);
+```
+
+一次在这里：
+
+```javascript
+Dog.prototype = new Animal();
+```
+
+这会导致两个问题：
+
+1. 性能上有冗余
+2. `Dog.prototype` 上会挂一份没必要的父实例属性
+
+例如：
+
+```javascript
+console.log(Dog.prototype.name);   // undefined 或默认值
+console.log(Dog.prototype.colors); // 一份多余的数组
+```
+
+这些属性真正使用时，通常会被实例自身属性遮蔽掉，因此没有价值。
+
+### 5.5 适用场景
+
+在理解继承演进过程时非常重要，但从“方案质量”来看，它已经不是最优解。
+
+---
+
+## 6. 方式四：原型式继承
+
+原型式继承的核心思想是：**不基于构造函数继承，而是直接基于一个现有对象创建新对象。**
+
+### 6.1 实现
+
+```javascript
+const animal = {
+  type: "animal",
+  colors: ["black", "white"],
+  sayType() {
+    console.log(this.type);
+  },
+};
+
+function createObject(obj) {
+  function F() {}
+  F.prototype = obj;
+  return new F();
+}
+
+const dog1 = createObject(animal);
+const dog2 = createObject(animal);
+```
+
+现代 JavaScript 里它基本等价于：
+
+```javascript
+const dog1 = Object.create(animal);
+const dog2 = Object.create(animal);
+```
+
+### 6.2 原理
+
+`Object.create(animal)` 会创建一个新对象，并让这个新对象的原型直接指向 `animal`：
+
+```text
+dog1
+  ↓
+animal
+  ↓
+Object.prototype
+  ↓
+null
+```
+
+所以 `dog1` 能访问到 `animal` 上的属性和方法。
+
+### 6.3 优点
+
+- 非常适合基于现有对象快速派生新对象
+- 不需要构造函数
+- 写法简洁，表达力强
+
+### 6.4 缺点
+
+#### 缺点：引用类型属性仍然会共享
+
+```javascript
+dog1.colors.push("brown");
+
+console.log(dog2.colors); // ["black", "white", "brown"]
+```
+
+因为 `colors` 是定义在 `animal` 对象上的，`dog1` 和 `dog2` 最终访问的是同一份数据。
+
+### 6.5 适用场景
+
+- 希望基于已有对象创建浅层派生对象
+- 配置对象继承
+- 需要一个干净的原型委托关系
+
+---
+
+## 7. 方式五：寄生式继承
+
+寄生式继承是在原型式继承基础上又包了一层：**先创建一个对象，再在这个对象上增强一些能力，然后返回它。**
+
+### 7.1 实现
+
+```javascript
+const animal = {
+  type: "animal",
+  sayType() {
+    console.log(this.type);
+  },
+};
+
+function createAnother(original) {
+  const clone = Object.create(original);
+  clone.sayHi = function () {
+    console.log("hi");
+  };
+  return clone;
+}
+
+const dog = createAnother(animal);
+
+dog.sayType(); // animal
+dog.sayHi();   // hi
+```
+
+### 7.2 原理
+
+步骤拆开看：
+
+1. 用 `Object.create(original)` 创建一个新对象
+2. 让新对象原型指向 `original`
+3. 再给这个新对象新增自定义方法
+4. 返回这个增强后的对象
+
+所以“寄生”两个字，可以理解为：**在一个对象上附加额外能力后再返回。**
+
+### 7.3 优点
+
+- 比原型式继承更灵活
+- 可以在创建子对象时顺手增强功能
+- 适合做一次性的对象包装
+
+### 7.4 缺点
+
+#### 缺点 1：新增方法无法复用
+
+```javascript
+clone.sayHi = function () {
+  console.log("hi");
+};
+```
+
+每次调用 `createAnother` 都会重新创建一份 `sayHi`。
+
+#### 缺点 2：本质问题仍没变
+
+如果原始对象上有引用类型属性，依然存在共享问题。
+
+### 7.5 适用场景
+
+更多是理解思路和模式演进，实际业务代码中不常单独作为“继承方案”使用。
+
+---
+
+## 8. 方式六：寄生组合继承
+
+这是 ES5 时代最成熟、最推荐的继承方案。
+
+它解决了组合继承“父构造函数执行两次”的问题。
+
+### 8.1 实现
+
+```javascript
+function Animal(name) {
+  this.name = name;
+  this.colors = ["black", "white"];
+}
+
+Animal.prototype.sayName = function () {
+  console.log(this.name);
+};
+
+function Dog(name, age) {
+  Animal.call(this, name);
+  this.age = age;
+}
+
+Dog.prototype = Object.create(Animal.prototype);
+Dog.prototype.constructor = Dog;
+
+Dog.prototype.sayAge = function () {
+  console.log(this.age);
+};
+
+const dog1 = new Dog("wangcai", 2);
+const dog2 = new Dog("dahuang", 3);
+```
+
+### 8.2 原理
+
+和组合继承相比，最关键的变化是：
+
+```javascript
+Dog.prototype = Object.create(Animal.prototype);
+```
+
+而不是：
+
+```javascript
+Dog.prototype = new Animal();
+```
+
+这意味着：
+
+- 我们只想让 `Dog.prototype` 的原型指向 `Animal.prototype`
+- 我们不需要额外创建一个带有父实例属性的对象
+
+于是关系变成：
+
+```text
+dog1
+  ↓
+Dog.prototype
+  ↓
+Animal.prototype
+  ↓
+Object.prototype
+  ↓
+null
+```
+
+同时实例属性还是通过：
+
+```javascript
+Animal.call(this, name);
+```
+
+来初始化。
+
+所以它把职责拆得很清楚：
+
+- `Animal.call(this, name)`：负责把父实例属性放到子实例上
+- `Object.create(Animal.prototype)`：负责建立方法继承链
+
+### 8.3 优点
+
+- 可以继承实例属性
+- 可以继承原型方法
+- 可以传参
+- 引用类型属性不会共享
+- 父构造函数只执行一次
+- 没有组合继承里的冗余原型属性
+
+### 8.4 缺点
+
+- 写法比组合继承稍微绕一点
+- 需要开发者理解 `Object.create()` 的作用
+
+### 8.5 适用场景
+
+如果你在 ES5 环境下实现继承，寄生组合继承通常是最佳实践。
+
+---
+
+## 9. 方式七：ES6 `class extends`
+
+现代 JavaScript 开发里，最常见的是 `class` 和 `extends`。
+
+### 9.1 实现
+
+```javascript
+class Animal {
+  constructor(name) {
+    this.name = name;
+    this.colors = ["black", "white"];
+  }
+
+  sayName() {
+    console.log(this.name);
+  }
+}
+
+class Dog extends Animal {
+  constructor(name, age) {
+    super(name);
+    this.age = age;
+  }
+
+  sayAge() {
+    console.log(this.age);
+  }
+}
+
+const dog1 = new Dog("wangcai", 2);
+const dog2 = new Dog("dahuang", 3);
+```
+
+### 9.2 原理
+
+`class` 看起来像传统面向对象语法，但它本质上仍然是**基于原型链的语法糖**。
+
+上面这段代码背后，本质上仍然做了两件事：
+
+#### 1. 实例属性继承
+
+```javascript
+super(name);
+```
+
+等价于在子类构造函数里调用父类构造逻辑。
+
+#### 2. 原型方法继承
+
+```javascript
+Dog.prototype.__proto__ === Animal.prototype; // true
+```
+
+同时构造函数本身也会建立一层继承关系：
+
+```javascript
+Dog.__proto__ === Animal; // true
+```
+
+这让静态方法也能继承。
+
+例如：
+
+```javascript
+class Animal {
+  static category() {
+    return "creature";
+  }
+}
+
+class Dog extends Animal {}
+
+console.log(Dog.category()); // creature
+```
+
+### 9.3 `super` 为什么必须先调用
+
+在子类构造函数里：
+
+```javascript
+class Dog extends Animal {
+  constructor(name, age) {
+    super(name);
+    this.age = age;
+  }
+}
+```
+
+必须先执行 `super(name)`，才能使用 `this`。
+
+原因是：
+
+- 子类实例的 `this` 需要先由父类构造过程初始化
+- 在 `super()` 执行前，当前实例还没有完成合法初始化
+
+所以这样写会报错：
+
+```javascript
+class Dog extends Animal {
+  constructor(name, age) {
+    this.age = age; // ReferenceError
+    super(name);
+  }
+}
+```
+
+### 9.4 优点
+
+- 语义清晰，代码可读性最好
+- 写法接近传统 OOP，团队理解成本低
+- 本质上继承了寄生组合继承的优点
+- 同时支持实例方法、静态方法、`super` 调用
+
+### 9.5 缺点
+
+- 容易让初学者误以为 JavaScript 真的是“类继承”
+- 如果不理解原型链，遇到 `super`、静态继承、方法查找时还是容易懵
+
+### 9.6 适用场景
+
+现代项目里，优先使用 `class extends` 即可。除非你需要兼容旧代码、手写底层继承逻辑，才需要回到 ES5 写法。
+
+---
+
+## 10. 所有继承方式对比总结
+
+| 继承方式 | 能否传参 | 是否继承原型方法 | 引用属性是否共享 | 父构造函数执行次数 | 适用评价 |
+| --- | --- | --- | --- | --- | --- |
+| 原型链继承 | 否 | 是 | 是 | 1 次 | 适合理解原理，不适合实战 |
+| 借用构造函数继承 | 是 | 否 | 否 | 1 次/实例 | 只能继承属性，不完整 |
+| 组合继承 | 是 | 是 | 否 | 2 次 | 经典方案，但有冗余 |
+| 原型式继承 | 否 | 取决于原对象 | 是 | 0 次 | 适合对象委托 |
+| 寄生式继承 | 否 | 取决于原对象 | 可能共享 | 0 次 | 灵活，但复用性差 |
+| 寄生组合继承 | 是 | 是 | 否 | 1 次 | ES5 最优方案 |
+| `class extends` | 是 | 是 | 否 | 1 次 | 现代开发首选 |
+
+---
+
+## 11. 面试和实战里怎么选
+
+### 11.1 如果是为了理解原理
+
+建议按这个顺序掌握：
+
+1. 原型链继承
+2. 借用构造函数继承
+3. 组合继承
+4. 寄生组合继承
+5. `class extends`
+
+因为这条线能把 JavaScript 继承方案的演化过程串起来。
+
+### 11.2 如果是面试回答
+
+一个比较完整的回答模板是：
+
+1. JavaScript 本质上是基于原型链实现继承
+2. 早期常见方案有原型链继承、借用构造函数、组合继承
+3. 组合继承存在父构造函数执行两次的问题
+4. 寄生组合继承解决了这个问题，是 ES5 最成熟方案
+5. ES6 的 `class extends` 本质上是寄生组合继承的语法糖
+
+### 11.3 如果是业务开发
+
+- 新项目优先用 `class extends`
+- 如果只是想复用对象而不是建类层级，优先考虑组合而不是硬套继承
+- 如果在读老代码，重点看它到底是组合继承还是寄生组合继承
+
+---
+
+## 12. 一个容易忽略的问题：继承不是越多越好
+
+很多初学者学完继承，会下意识觉得“有父子关系就应该继承”。其实不是。
+
+继承适合表达的是**is-a** 关系：
+
+- `Dog` is an `Animal`
+- `AdminUser` is a `User`
+
+如果只是“用到了某个能力”，往往更适合**组合**而不是继承：
+
+- `Car` 有一个 `engine`
+- `Page` 使用一个 `request` 模块
+
+所以在实战里，比“会写继承”更重要的是：**知道什么时候不该用继承。**
+
+---
+
+## 13. 最后一张图：把整件事串起来
+
+你可以把 JavaScript 继承理解成两件独立的事：
+
+### 第一件事：继承属性
+
+让父构造函数在子实例上执行：
+
+```javascript
+Parent.call(this, ...args);
+```
+
+### 第二件事：继承方法
+
+让子类型原型对象连接到父类型原型对象：
+
+```javascript
+Child.prototype = Object.create(Parent.prototype);
+Child.prototype.constructor = Child;
+```
+
+而 ES6 `class extends` 只是把这两件事写得更自然：
+
+```javascript
+class Child extends Parent {
+  constructor(...args) {
+    super(...args);
+  }
+}
+```
+
+所以真正需要记住的不是七八段模板代码，而是这句总结：
+
+> JavaScript 继承的本质，就是一边复用父构造函数初始化实例属性，一边建立原型链复用方法。
+
+理解了这句话，再看各种继承方式，都会顺很多。
