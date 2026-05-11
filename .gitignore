@@ -38,6 +38,9 @@ dev-server.*.log
 # vercel
 .vercel
 
+# velite
+.velite
+
 # codex
 .codex
 

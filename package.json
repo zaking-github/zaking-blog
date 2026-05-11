@@ -9,8 +9,8 @@
     "postcss": "8.5.10"
   },
   "scripts": {
-    "dev": "velite --watch & next dev",
-    "build": "velite && next build",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
